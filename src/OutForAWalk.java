@@ -82,9 +82,11 @@ class OutForAWalk {
 	}
 
 	void PreProcess() {
-		// write your answer here
-		// you can leave this method blank if you do not need it
-
+		
+		// For subtask D
+		// Given that queries are restricted to only [0..9], do an initial MST for every source
+		// where 0 <= source <= 9 and destination = V, number of vertices.
+		
 
 	}
 
