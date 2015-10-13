@@ -10,14 +10,9 @@ import java.io.*;
 class OutForAWalk {
 	private static int V; // number of vertices in the graph (number of rooms in the building)
 	private static Vector<Vector<IntegerPair>> AdjList; // the weighted graph (the building), effort rating of each corridor is stored here too
-
-	// if needed, declare a private data structure here that
-	// is accessible to all methods in this class
-	// --------------------------------------------
-
-
-
-	// --------------------------------------------
+	private static Vector<Vector<Integer>> cache;
+	private static int[] visited;
+	private static IntegerPair[] parent;
 
 	public OutForAWalk() {
 		// Write necessary codes during construction;
@@ -79,15 +74,66 @@ class OutForAWalk {
 			
 			return maxWeight;
 		}
+		
+		@SuppressWarnings("unchecked")
+		public static Vector<Vector<IntegerPair>> getMST(Vector<Vector<IntegerPair>> adjList) throws Exception {
+
+			AdjList = adjList;
+			
+			taken = new Vector<Boolean>(); 
+			taken.addAll(Collections.nCopies(V, false));
+			pq = new PriorityQueue<IntegerTriple>();
+			Vector<Vector<IntegerPair>> mst = new Vector<Vector<IntegerPair>>(V);
+			for (int i = 0; i < V; i++) {
+				mst.add(new Vector<IntegerPair>());
+			}
+
+			// take any vertex of the graph, for simplicity, vertex 0, to be included in the MST
+			process(0);
+
+			int mstCost = 0;
+			while (!pq.isEmpty()) { // we will do this until all V vertices are taken (or E = V-1 edges are taken)
+				IntegerTriple front = pq.poll();
+				if (!taken.get(front.third())) { // we have not connected this vertex yet
+					//mstCost += front.first();
+					mst.get(front.second()).add(new IntegerPair(front.first(), front.third()));
+					mst.get(front.third()).add(new IntegerPair(front.first(), front.second()));
+					//System.out.println("Adding edge: (" + front.first() + ", " + front.second() + "), MST cost now = " + mstCost);
+					process(front.third());
+				}
+				//else // this vertex has been connected before via some other tree branch
+				//System.out.println("Ignoring edge: (" + front.first() + ", " + front.second() + "), MST cost now = " + mstCost);
+			}
+
+			//System.out.printf("Final MST cost %d\n", mstCost);
+			
+			return mst;
+		}
 	}
 
-	void PreProcess() {
+	void PreProcess() throws Exception {
 		
 		// For subtask D
-		// Given that queries are restricted to only [0..9], do an initial MST for every source
-		// where 0 <= source <= 9 and destination = V, number of vertices.
+		// Given that queries are restricted to only [0..9], cache the results of running
+		// PrimMST on every source vertex to every other fucking vertex
 		
-
+		// Get the MST of the graph
+		Vector<Vector<IntegerPair>> mst = Prim.getMST(AdjList);
+		//display(mst);
+		
+		int source = 10;
+		
+		if (V < 10) {
+			source = V;
+		}
+		
+		cache = new Vector<Vector<Integer>>(source);
+		for (int i = 0; i < source; i++) {
+			cache.add(new Vector<Integer>(V));
+			for (int j = 0; j < V; j++) {
+				cache.get(i).add(DFSMax(mst, i, j));
+			}
+		}
 	}
 
 	int Query(int source, int destination) throws Exception {
@@ -98,8 +144,9 @@ class OutForAWalk {
 		//
 		// write your answer here
 		//display(AdjList);
-		ans = Prim.PrimMST(AdjList, source, destination);
-
+		//ans = Prim.PrimMST(AdjList, source, destination);
+		ans = cache.get(source).get(destination);
+		
 		return ans;
 	}
 
@@ -116,6 +163,46 @@ class OutForAWalk {
 		System.out.println('\n');
 	}
 
+	public void initArrays() {
+		visited = new int[V];
+		parent = new IntegerPair[V];
+        for (int i = 0; i < V; i++) {
+            visited[i] = 0;
+            parent[i] = new IntegerPair(-1, -1);
+        }
+    }
+	
+	public void DFS(Vector<Vector<IntegerPair>> adjList, int vertex, int destination) {
+        visited[vertex] = 1;
+        if (vertex != destination) {
+        	for (int i = 0; i < adjList.get(vertex).size(); i++) {
+        		int nextVertex = adjList.get(vertex).get(i).second();
+        		if (visited[nextVertex] == 0) {
+        			parent[nextVertex] = new IntegerPair(adjList.get(vertex).get(i).first(), vertex);
+        			DFS(adjList, nextVertex, destination);
+        		}
+        	}
+        }
+    }
+	
+	public int DFSMax(Vector<Vector<IntegerPair>> adjList, int vertex, int destination) {
+		
+		// Perform DFS on the MST
+		initArrays();
+		DFS(adjList, vertex, destination);
+
+		//displayParent();
+
+		// Trace the path backwards, since every node has only one parent
+		int currMax = 0, currIndex = destination;
+		while (currIndex != vertex) {
+			//System.out.println("Current: " + currIndex + "\nNext: " + parent[currIndex].second());
+			currMax = Math.max(currMax, parent[currIndex].first());
+			currIndex = parent[currIndex].second();
+		}
+
+		return currMax;
+	}
 
 	// --------------------------------------------
 
