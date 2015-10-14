@@ -15,9 +15,6 @@ class OutForAWalk {
 	private static IntegerPair[] parent;
 
 	public OutForAWalk() {
-		// Write necessary codes during construction;
-		//
-		// write your answer here
 		V = 0;
 		AdjList = new Vector<Vector<IntegerPair>>();
 	}
@@ -41,6 +38,32 @@ class OutForAWalk {
 			}
 		}
 
+		//
+		@SuppressWarnings("unchecked")
+		public static void PrimWeight(Vector<Vector<IntegerPair>> adjList, int source) throws Exception {
+
+			AdjList = adjList;
+			
+			taken = new Vector<Boolean>(); 
+			taken.addAll(Collections.nCopies(V, false));
+
+			pq = new PriorityQueue<IntegerTriple>();
+
+			// take any vertex of the graph, for simplicity, vertex 0, to be included in the MST
+			process(source);
+			int currMax = 0;
+
+			while (!pq.isEmpty()) { // we will do this until all V vertices are taken (or E = V-1 edges are taken)
+				IntegerTriple front = pq.poll();
+				if (!taken.get(front.third())) { // we have not connected this vertex yet
+					currMax = Math.max(currMax, front.first());
+					cache[source][front.third()] = currMax;
+					process(front.third());
+				}
+			}
+		}
+		
+		// Return greatest minimum edge from <source> to <destination>
 		@SuppressWarnings("unchecked")
 		public static int PrimMST(Vector<Vector<IntegerPair>> adjList, int source, int destination) throws Exception {
 
@@ -53,7 +76,7 @@ class OutForAWalk {
 
 			// take any vertex of the graph, for simplicity, vertex 0, to be included in the MST
 			process(source);
-			int maxWeight = 0, mstCost = 0;
+			int maxWeight = 0;
 
 			while (!pq.isEmpty()) { // we will do this until all V vertices are taken (or E = V-1 edges are taken)
 				IntegerTriple front = pq.poll();
@@ -61,20 +84,14 @@ class OutForAWalk {
 					maxWeight = Math.max(maxWeight, front.first());
 					break;
 				} else if (!taken.get(front.third())) { // we have not connected this vertex yet
-					//mstCost += front.first();
 					maxWeight = Math.max(maxWeight, front.first()); // add the weight of this edge
-					//System.out.println("Adding edge: (" + front.first() + ", " + front.second() + "), MST cost now = " + mstCost);
 					process(front.third());
 				}
-				//else // this vertex has been connected before via some other tree branch
-					//System.out.println("Ignoring edge: (" + front.first() + ", " + front.second() + "), MST cost now = " + mstCost);
-			}
-
-			//System.out.printf("Final MST cost %d\n", mstCost);
-			
+			}		
 			return maxWeight;
 		}
 		
+		// Return MST using Prim's
 		@SuppressWarnings("unchecked")
 		public static Vector<Vector<IntegerPair>> getMST(Vector<Vector<IntegerPair>> adjList) throws Exception {
 
@@ -91,22 +108,14 @@ class OutForAWalk {
 			// take any vertex of the graph, for simplicity, vertex 0, to be included in the MST
 			process(0);
 
-			int mstCost = 0;
 			while (!pq.isEmpty()) { // we will do this until all V vertices are taken (or E = V-1 edges are taken)
 				IntegerTriple front = pq.poll();
 				if (!taken.get(front.third())) { // we have not connected this vertex yet
-					//mstCost += front.first();
 					mst.get(front.second()).add(new IntegerPair(front.first(), front.third()));
 					mst.get(front.third()).add(new IntegerPair(front.first(), front.second()));
-					//System.out.println("Adding edge: (" + front.first() + ", " + front.second() + "), MST cost now = " + mstCost);
 					process(front.third());
 				}
-				//else // this vertex has been connected before via some other tree branch
-				//System.out.println("Ignoring edge: (" + front.first() + ", " + front.second() + "), MST cost now = " + mstCost);
 			}
-
-			//System.out.printf("Final MST cost %d\n", mstCost);
-			
 			return mst;
 		}
 	}
@@ -114,40 +123,32 @@ class OutForAWalk {
 	void PreProcess() throws Exception {
 		
 		// For subtask D
-		// Given that queries are restricted to only [0..9], cache the results of running
-		// PrimMST on every source vertex to every other fucking vertex
-		
-		// Get the MST of the graph
+		// Given that queries are restricted to only [0..9], run Prim's to get the MST
 		Vector<Vector<IntegerPair>> mst = Prim.getMST(AdjList);
-		//display(mst);
 		
 		int source = 10;
 		
+		// For cases when V is smaller than 10 vertices
 		if (V < 10) {
 			source = V;
 		}
 		
-		// Initialize the cache
+		// Initialize the cache, space O(10V)
 		cache = new int[10][V];
 		
 		for (int i = 0; i < source; i++) {			
-			// Run modified DFS
-			initArrays();
-			DFSWeight(mst, i, 0);
-			System.out.println('\n');
+			// Run modified Prim's
+			Prim.PrimWeight(mst, i);
 		}
-		System.out.println('\n');
 	}
 
 	int Query(int source, int destination) throws Exception {
 		int ans = 0;
-
-		// You have to report the weight of a corridor (an edge)
-		// which has the highest effort rating in the easiest path from source to destination for Grace
-		//
-		// write your answer here
-		//display(AdjList);
-		//ans = Prim.PrimMST(AdjList, source, destination);
+		
+		// Part C answer
+		// ans = Prim.PrimMST(AdjList, source, destination);
+		
+		// Part D answer
 		ans = cache[source][destination];
 		
 		return ans;
@@ -165,30 +166,6 @@ class OutForAWalk {
 		}
 		System.out.println('\n');
 	}
-
-	public void initArrays() {
-		visited = new int[V];
-		parent = new IntegerPair[V];
-        for (int i = 0; i < V; i++) {
-            visited[i] = 0;
-            parent[i] = new IntegerPair(-1, -1);
-        }
-    }
-	
-	public void DFSWeight(Vector<Vector<IntegerPair>> adjList, int vertex, int currMax) {
-		visited[vertex] = 1;
-		for (int i = 0; i < adjList.get(vertex).size(); i++) {
-			int nextVertex = adjList.get(vertex).get(i).second();
-			int weight = adjList.get(vertex).get(i).first();
-			if (visited[nextVertex] == 0) {
-				currMax = Math.max(currMax, weight);
-				parent[nextVertex] = new IntegerPair(adjList.get(vertex).get(i).first(), vertex);
-				System.out.println("Vertex " + vertex + " to " + nextVertex + " with max weight " + currMax);
-				cache[vertex][nextVertex] = currMax;
-				DFSWeight(adjList, nextVertex, currMax);
-			}
-		}
-    }
 
 	// --------------------------------------------
 
