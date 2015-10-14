@@ -10,7 +10,7 @@ import java.io.*;
 class OutForAWalk {
 	private static int V; // number of vertices in the graph (number of rooms in the building)
 	private static Vector<Vector<IntegerPair>> AdjList; // the weighted graph (the building), effort rating of each corridor is stored here too
-	private static Vector<Vector<Integer>> cache;
+	private static int[][] cache;
 	private static int[] visited;
 	private static IntegerPair[] parent;
 
@@ -127,13 +127,16 @@ class OutForAWalk {
 			source = V;
 		}
 		
-		cache = new Vector<Vector<Integer>>(source);
-		for (int i = 0; i < source; i++) {
-			cache.add(new Vector<Integer>(V));
-			for (int j = 0; j < V; j++) {
-				cache.get(i).add(DFSMax(mst, i, j));
-			}
+		// Initialize the cache
+		cache = new int[10][V];
+		
+		for (int i = 0; i < source; i++) {			
+			// Run modified DFS
+			initArrays();
+			DFSWeight(mst, i, 0);
+			System.out.println('\n');
 		}
+		System.out.println('\n');
 	}
 
 	int Query(int source, int destination) throws Exception {
@@ -145,7 +148,7 @@ class OutForAWalk {
 		// write your answer here
 		//display(AdjList);
 		//ans = Prim.PrimMST(AdjList, source, destination);
-		ans = cache.get(source).get(destination);
+		ans = cache[source][destination];
 		
 		return ans;
 	}
@@ -172,37 +175,20 @@ class OutForAWalk {
         }
     }
 	
-	public void DFS(Vector<Vector<IntegerPair>> adjList, int vertex, int destination) {
-        visited[vertex] = 1;
-        if (vertex != destination) {
-        	for (int i = 0; i < adjList.get(vertex).size(); i++) {
-        		int nextVertex = adjList.get(vertex).get(i).second();
-        		if (visited[nextVertex] == 0) {
-        			parent[nextVertex] = new IntegerPair(adjList.get(vertex).get(i).first(), vertex);
-        			DFS(adjList, nextVertex, destination);
-        		}
-        	}
-        }
-    }
-	
-	public int DFSMax(Vector<Vector<IntegerPair>> adjList, int vertex, int destination) {
-		
-		// Perform DFS on the MST
-		initArrays();
-		DFS(adjList, vertex, destination);
-
-		//displayParent();
-
-		// Trace the path backwards, since every node has only one parent
-		int currMax = 0, currIndex = destination;
-		while (currIndex != vertex) {
-			//System.out.println("Current: " + currIndex + "\nNext: " + parent[currIndex].second());
-			currMax = Math.max(currMax, parent[currIndex].first());
-			currIndex = parent[currIndex].second();
+	public void DFSWeight(Vector<Vector<IntegerPair>> adjList, int vertex, int currMax) {
+		visited[vertex] = 1;
+		for (int i = 0; i < adjList.get(vertex).size(); i++) {
+			int nextVertex = adjList.get(vertex).get(i).second();
+			int weight = adjList.get(vertex).get(i).first();
+			if (visited[nextVertex] == 0) {
+				currMax = Math.max(currMax, weight);
+				parent[nextVertex] = new IntegerPair(adjList.get(vertex).get(i).first(), vertex);
+				System.out.println("Vertex " + vertex + " to " + nextVertex + " with max weight " + currMax);
+				cache[vertex][nextVertex] = currMax;
+				DFSWeight(adjList, nextVertex, currMax);
+			}
 		}
-
-		return currMax;
-	}
+    }
 
 	// --------------------------------------------
 
